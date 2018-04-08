@@ -1,8 +1,21 @@
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, ConversationHandler
-from geocoder import get_coordinates, poisk, get_ll_span
+from telegram import ReplyKeyboardMarkup
+from geocoder import get_coordinates, poisk, get_ll_span, search
 from mapapi import show_map
+from settings import TOKEN
+from random import choice
 
-def start(bot, update):
+
+places = {'спорт': ['стадион', 'дворец спорта', 'тренажёрный зал', 'бассейн'],
+          'культура':['театр','музей', 'библиотека'],
+          'развлечения':['клуб', 'кино', 'сауна', 'бар'],
+          'медицина':['аптека', 'больница', 'поликлиника', 'стоматология'],
+          'питание':['кафе', 'ресторан', 'макдональдс', 'kfc'],
+          'религия':['православный храм','мечеть'],
+          'магазины':['супермаркет', 'спорттовары', 'магазин одежды']
+          }
+
+def start(bot, update, user_data):
     update.message.reply_text(
         "Привет! :)\n"
         "Я бот, который может тебе найти интересные места города на основе твоих интересов.\n"
@@ -11,10 +24,25 @@ def start(bot, update):
 
 def town(bot, update, user_data):
     user_data['locality'] = update.message.text
-    update.message.reply_text("А теперь расскажи немного о себе :)")
+    reply_keyboard = [['Развлечения', 'Питание'],
+                      ['Спорт','Религия','Медицина'],
+                      ['Культура', 'Магазины'],
+                      ['Сменить город']]
+
+    markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+    update.message.reply_text("Выберите сферу которая вас интересует", reply_markup=markup)
     return 2
 
-def interests(bot, update, user_data):
+def town2(bot, update):
+    reply_keyboard = [['Развлечения', 'Питание'],
+                      ['Спорт','Религия','Медицина'],
+                      ['Культура', 'Магазины']]
+
+    markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+    update.message.reply_text("Выберите сферу которая вас интересует", reply_markup=markup)
+    return 2
+
+def interests_(bot, update, user_data):
     user_data['hobby'] = update.message.text.split() # пример: пользователь ввёл 'музей кино театр'
     update.message.reply_text("Отлично! Пойду искать!")
 
@@ -52,6 +80,44 @@ def stop(bot, update):
 def back(bot, update):
     update.message.reply_text(update.message.text)
 
+def interests(bot, update, user_data):
+    message = update.message.text.lower()
+    if message == 'сменить город':
+        return 1
+    elif message in places:
+        _1 = 3#choice(range(3, len(places[message]+1)))
+        print('zashel2')
+        _places = []
+        for _ in range(_1, 0, -1):
+            _places.append(search(user_data['locality'], choice(places[message]), _))
+        print(_places)
+        _a = []
+        for _ in _places:
+            for data, coord in _:
+                print(2)
+                if data not in _a:
+                    static_api_request = "http://static-maps.yandex.ru/1.x/?ll={}&l=map&z=15&pt={},pm2blywm1".format(coord, coord)
+                    print(3)
+                    bot.sendPhoto(
+                        update.message.chat.id,
+                        static_api_request
+                    )
+                    update.message.reply_text(data)
+                    _a.append(data)
+
+        print('proshel 2 chikl')
+        reply_keyboard = [['Развлечения', 'Питание'],
+                          ['Спорт', 'Религия', 'Медицина'],
+                          ['Культура', 'Магазины'],
+                          ['Сменить город']]
+
+        markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+        update.message.reply_text('Информация выдана', reply_markup=markup)
+        return 2
+    else:
+        return 2
+
+
 def main():
     updater = Updater(TOKEN)
 
@@ -59,11 +125,12 @@ def main():
 
     conv_handler = ConversationHandler(
         # Без изменений
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CommandHandler('start', start, pass_user_data=True)],
 
         states={
             1: [MessageHandler(Filters.text, town, pass_user_data=True)],
-            2: [MessageHandler(Filters.text, interests, pass_user_data=True)]
+            2: [MessageHandler(Filters.text, interests, pass_user_data=True)],
+            3: [MessageHandler(Filters.text, town2 )]
         },
 
         fallbacks=[CommandHandler('stop', stop)]
