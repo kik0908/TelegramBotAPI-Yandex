@@ -1,5 +1,5 @@
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, ConversationHandler
-from telegram import ReplyKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 from geocoder import get_coordinates, poisk, get_ll_span, search
 from mapapi import show_map
 from settings import TOKEN
@@ -18,12 +18,17 @@ places = {'спорт': ['стадион', 'дворец спорта', 'тре�
 def start(bot, update, user_data):
     update.message.reply_text(
         "Привет! :)\n"
-        "Я бот, который может тебе найти интересные места города на основе твоих интересов.\n"
-        "Какой город тебя интересует?")
+        "Я бот, который может тебе найти интересные места города на основе твоих интересов.\n")
+    update.message.reply_text("Какой город тебя интересует?")
     return 1
 
 def town(bot, update, user_data):
     user_data['locality'] = update.message.text
+    _ans = search(user_data["locality"], 'кафе')
+    if not _ans:
+        print('Ошибка при поиске города')
+        update.message.reply_text("Прости, но я не смог найти такой город.\nКакой город тебя интересует?")
+        return 1
     reply_keyboard = [['Развлечения', 'Питание'],
                       ['Спорт','Религия','Медицина'],
                       ['Культура', 'Магазины'],
@@ -92,26 +97,26 @@ def interests(bot, update, user_data):
             _places.append(search(user_data['locality'], choice(places[message]), _))
         print(_places)
         _a = []
-        for _ in _places:
-            for data, coord in _:
-                print(2)
-                if data not in _a:
-                    static_api_request = "http://static-maps.yandex.ru/1.x/?ll={}&l=map&z=15&pt={},pm2blywm1".format(coord, coord)
-                    print(3)
-                    bot.sendPhoto(
-                        update.message.chat.id,
-                        static_api_request
-                    )
-                    update.message.reply_text(data)
-                    _a.append(data)
-
-        print('proshel 2 chikl')
         reply_keyboard = [['Развлечения', 'Питание'],
                           ['Спорт', 'Религия', 'Медицина'],
                           ['Культура', 'Магазины'],
                           ['Сменить город']]
 
         markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+        for _ in _places:
+            for data, coord in _:
+                print(2)
+                if data not in _a:
+                    static_api_request = "http://static-maps.yandex.ru/1.x/?ll={}&l=map&z=15&pt={},pm2blywm1".format(coord, coord)
+                    print(3)
+                    #bot.sendPhoto(
+                    #    update.message.chat.id,
+                    #    static_api_request
+                    #)
+                    update.message.reply_text(static_api_request+'\n'+data)#data)
+                    _a.append(data)
+
+        print('proshel 2 chikl')
         update.message.reply_text('Информация выдана', reply_markup=markup)
         return 2
     else:
