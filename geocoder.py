@@ -3,6 +3,8 @@
 import requests
 import sys
 
+from settings import apikey
+
 def geocode(address):
     # Собираем запрос для геокодера.
     geocoder_request = "http://geocode-maps.yandex.ru/1.x/?geocode={address}&format=json".format(**locals())
@@ -112,12 +114,12 @@ def get_nearest_object(point, kind):
     return features[0]["GeoObject"]["name"] if features else None
 
 
-def poisk(address_ll, hobby):
+def poisk(address_ll, hobby, num = 1):
     try:
         search_api_server = "https://search-maps.yandex.ru/v1/"
 
         search_params = {
-            "apikey": api_key,
+            "apikey": apikey,
             "text": hobby,
             "lang": "ru_RU",
             "ll": address_ll, # адрес дома
@@ -133,7 +135,7 @@ def poisk(address_ll, hobby):
     working_time = None
     # Преобразуем ответ в json-объект
     json_response = response.json()
-    for k in range(1):
+    for k in range(num):
         organization = json_response["features"][k]["properties"]["CompanyMetaData"]
         org_time_work = organization["Hours"]['Availabilities']
         if 'TwentyFourHours' in org_time_work[0]:
@@ -148,3 +150,47 @@ def poisk(address_ll, hobby):
         working_time = color
 
     return coordinates, working_time
+
+def search(city, org, num = 1):
+    try:
+        search_api_server = "https://search-maps.yandex.ru/v1/"
+        ll = '{},{}'.format(*get_coordinates(city))
+        search_params = {
+            "apikey": apikey,
+            "text": org,
+            "lang": "ru_RU",
+            "ll": ll,
+            "type": "geo,biz"
+        }
+
+        response = requests.get(search_api_server, params=search_params)
+    except:
+        print("Запрос не удалось выполнить. Проверьте наличие сети Интернет.")
+        sys.exit(1)
+
+    organizations = []
+    # Преобразуем ответ в json-объект
+    json_response = response.json()
+    for i in range(num):
+        try:
+            organization = json_response["features"][i]["properties"]["CompanyMetaData"]
+            try:
+                url = organization['url']
+            except:
+                url = 'Сайт не обнаружен.'
+            org_name, _org_address = organization["name"], organization["address"].split(', ')
+
+            org_address = []
+            for _ in _org_address:
+                if _ not in org_address:
+                    org_address.append(_)
+            org_address = ', '.join(org_address)
+
+            _1 = '{}, {}. {}'.format(org_name, org_address, url)
+            point = json_response["features"][i]["geometry"]["coordinates"]
+            org_point = "{0},{1}".format(point[0], point[1])
+            organizations.append([_1, org_point])
+        except:
+            print('колличество организаций меньше. ', 'Искал: ', org,'.')
+            return organizations
+    return organizations
