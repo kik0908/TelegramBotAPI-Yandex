@@ -1,9 +1,10 @@
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, ConversationHandler
-from telegram import ReplyKeyboardMarkup
+from telegram.ext import Updater, MessageHandler, Filters, CallbackQueryHandler, CommandHandler, ConversationHandler
+from telegram import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 from geocoder import get_coordinates, poisk, get_ll_span, search
 from mapapi import show_map
 from settings import TOKEN
 from random import choice
+from itertools import cycle
 
 
 places = {'спорт': ['стадион', 'дворец спорта', 'тренажёрный зал', 'бассейн'],
@@ -15,15 +16,29 @@ places = {'спорт': ['стадион', 'дворец спорта', 'тре�
           'магазины':['супермаркет', 'спорттовары', 'магазин одежды']
           }
 
+reply_keyboard = [['Развлечения', 'Питание'],
+                  ['Спорт', 'Религия', 'Медицина'],
+                  ['Культура', 'Магазины'],
+                  ['Сменить город']]
+
+inline_keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Следующее место', callback_data=1)]])
+
+nazvanie_potom = {}
+
 def start(bot, update, user_data):
     update.message.reply_text(
         "Привет! :)\n"
-        "Я бот, который может тебе найти интересные места города на основе твоих интересов.\n"
-        "Какой город тебя интересует?")
+        "Я бот, который может тебе найти интересные места города на основе твоих интересов.\n")
+    update.message.reply_text("Какой город тебя интересует?")
     return 1
 
 def town(bot, update, user_data):
     user_data['locality'] = update.message.text
+    _ans = search(user_data["locality"], 'кино')
+    if not _ans:
+        print('Ошибка при поиске города')
+        update.message.reply_text("Прости, но я не смог найти такой город.\nКакой город тебя интересует?")
+        return 1
     reply_keyboard = [['Развлечения', 'Питание'],
                       ['Спорт','Религия','Медицина'],
                       ['Культура', 'Магазины'],
@@ -33,89 +48,67 @@ def town(bot, update, user_data):
     update.message.reply_text("Выберите сферу которая вас интересует", reply_markup=markup)
     return 2
 
-def town2(bot, update):
-    reply_keyboard = [['Развлечения', 'Питание'],
-                      ['Спорт','Религия','Медицина'],
-                      ['Культура', 'Магазины']]
-
-    markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
-    update.message.reply_text("Выберите сферу которая вас интересует", reply_markup=markup)
-    return 2
-
-def interests_(bot, update, user_data):
-    user_data['hobby'] = update.message.text.split() # пример: пользователь ввёл 'музей кино театр'
-    update.message.reply_text("Отлично! Пойду искать!")
-
-    coordinate_x, coordinate_y = get_coordinates(user_data['locality'])
-    toponym_point = "{0},{1}".format(coordinate_x, coordinate_y)
-
-    coordinates, time = [], []
-    for hobby in user_data['hobby']:
-        ll_place, marker = poisk(toponym_point, hobby)
-        coordinates.append(ll_place)
-        time.append(marker)
-
-    ll, spn = get_ll_span(toponym_point, coordinates)
-    ll_spn = "ll={ll}&spn={spn}".format(**locals())
-    point_param='pt='
-    for j in range(len(coordinates)):
-        if j==0:
-            point_param+='{},{}'.format(coordinates[j], time[j])
-        else:
-            point_param += '~{},{}'.format(coordinates[j], time[j])
-
-    show_map(ll_spn, "map", add_params=point_param)
-    static_api_request = "http://static-maps.yandex.ru/1.x/?{}&l=map&{}".format(ll_spn, point_param)
-    # print(static_api_request)
-    bot.sendPhoto(
-        update.message.chat.id,
-        static_api_request
-    )
-    return ConversationHandler.END
-
 def stop(bot, update):
-    update.message.reply_text("Эх...")
+    update.message.reply_text("Удачи!")
     return ConversationHandler.END
 
 def back(bot, update):
     update.message.reply_text(update.message.text)
 
 def interests(bot, update, user_data):
+    global nazvanie_potom
+
     message = update.message.text.lower()
     if message == 'сменить город':
         return 1
     elif message in places:
-        _1 = 3#choice(range(3, len(places[message]+1)))
-        print('zashel2')
+        _1 = 10#choice(range(3, len(places[message]+1)))
+        print('zashel 2')
         _places = []
         for _ in range(_1, 0, -1):
             _places.append(search(user_data['locality'], choice(places[message]), _))
         print(_places)
+        datas = []
+
+        markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+
         _a = []
+
         for _ in _places:
             for data, coord in _:
                 print(2)
-                if data not in _a:
+                if data not in datas:
                     static_api_request = "http://static-maps.yandex.ru/1.x/?ll={}&l=map&z=15&pt={},pm2blywm1".format(coord, coord)
                     print(3)
-                    bot.sendPhoto(
-                        update.message.chat.id,
-                        static_api_request
-                    )
-                    update.message.reply_text(data)
-                    _a.append(data)
+                    #bot.sendPhoto(
+                    #    update.message.chat.id,
+                    #    static_api_request
+                    #)
+                    #update.message.reply_text('[Картинка.]({})\n{}'.format(static_api_request, data), parse_mode='markdown')#data)
+                    _a.append('[Картинка.]({})\n{}'.format(static_api_request, data))
+                    datas.append(data)
 
         print('proshel 2 chikl')
-        reply_keyboard = [['Развлечения', 'Питание'],
-                          ['Спорт', 'Религия', 'Медицина'],
-                          ['Культура', 'Магазины'],
-                          ['Сменить город']]
+        _a = cycle(_a)
+        _1 = update.message.reply_text(next(_a), reply_markup=inline_keyboard)
+        nazvanie_potom[_1.message_id] = _a
+        update.message.reply_text("Выберите сферу которая вас интересует", reply_markup=markup)
 
-        markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
-        update.message.reply_text('Информация выдана', reply_markup=markup)
         return 2
     else:
         return 2
+
+def change_places(bot, update, user_data):
+    global nazvanie_potom
+
+    query = update.callback_query
+    if query.data == '1':
+        bot.edit_message_text(text=next(nazvanie_potom[query.message.message_id]),
+                              chat_id=query.message.chat_id,
+                              message_id=query.message.message_id, parse_mode='markdown',
+                              reply_markup=inline_keyboard)
+    return 2
+
 
 
 def main():
@@ -129,8 +122,8 @@ def main():
 
         states={
             1: [MessageHandler(Filters.text, town, pass_user_data=True)],
-            2: [MessageHandler(Filters.text, interests, pass_user_data=True)],
-            3: [MessageHandler(Filters.text, town2 )]
+            2: [MessageHandler(Filters.text, interests, pass_user_data=True),
+                CallbackQueryHandler(change_places, pass_user_data=True)]
         },
 
         fallbacks=[CommandHandler('stop', stop)]
