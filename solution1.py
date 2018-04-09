@@ -29,6 +29,10 @@ def start(bot, update, user_data):
     update.message.reply_text(
         "Привет! :)\n"
         "Я бот, который может тебе найти интересные места города на основе твоих интересов.\n")
+    update.message.reply_text("Если захочешь узнать про пробки в городе, то набери\n",
+                              "/traffic_congestion {ПУНКТ_ОТПРАВЛЕНИЯ}:{ПУНКТ_НАЗНАЧЕНИЯ}\n",
+                              "или\n",
+                              "/traffic_congestion {АДРЕС}\n")
     update.message.reply_text("Какой город тебя интересует?")
     return 1
 
@@ -51,6 +55,14 @@ def town(bot, update, user_data):
 def stop(bot, update):
     update.message.reply_text("Удачи!")
     return ConversationHandler.END
+
+def traffic_congestion(bot, update, args):
+    if ':' in args:
+        address1, address2 = args.split(':')
+        coord1, coord2 = get_coordinates(address1), get_coordinates(address2)
+        print(coord1, coord2)
+    else:
+        address1 = args
 
 def back(bot, update):
     update.message.reply_text(update.message.text)
@@ -131,6 +143,7 @@ def main():
 
     dp.add_handler(conv_handler)
     dp.add_handler(MessageHandler(Filters.text, back))
+    dp.add_handler(CommandHandler('traffic_congestion', traffic_congestion, pass_args=True))
 
     updater.start_polling()
 
