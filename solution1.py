@@ -82,7 +82,6 @@ def interests(bot, update, user_data):
                     break
                 random_place = choice(places[message])
 
-
             result = search(user_data['locality'], random_place, _1)
             print('Результат поиска: ',result)
             print(1)
