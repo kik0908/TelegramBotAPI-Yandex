@@ -122,13 +122,15 @@ def traffic_congestion(bot, update, args):
         address1, address2 = address[0], address[1]
         try:
             lat, lon = get_coordinates(address2)
-            ll, spn = get_ll_span(address1, [str(lat)+','+str(lon)])
+            print(get_coordinates(address1), lat, lon)
+            ll, spn = get_ll_span(address1, [str(lat)+','+str(lon)], [address2])
+            print(ll, spn)
         except:
             update.message.reply_text("Извини, но я не смог найти этот адрес :(")
     else:
         address1 = args
         ll, spn = get_ll_span(address1, [])
-    static_api_request = "http://static-maps.yandex.ru/1.x/?ll={}&l=map,trf&spn={}".format(ll, spn)
+    static_api_request = "http://static-maps.yandex.ru/1.x/?ll={}&l=map,trf&spn={}".format(ll,spn)
     bot.sendPhoto(
         update.message.chat.id,
         static_api_request

@@ -42,25 +42,53 @@ def get_coordinates(address):
 
 
 # Получаем параметры объекта для рисования карты вокруг него.
-def get_ll_span(address, org_addresses):
-    toponym = geocode(address)
-    if not toponym:
+def get_ll_span(address, org_addresses, list_org_addresses):
+    toponym1 = geocode(address)
+    if not toponym1:
         return (None,None)
-
     # Координаты центра топонима:
-    toponym_coodrinates = toponym["Point"]["pos"]
+    toponym_coodrinates = toponym1["Point"]["pos"]
     # Долгота и Широта :
     toponym_longitude, toponym_lattitude = toponym_coodrinates.split(" ")
 
-    ll = ",".join([toponym_longitude, toponym_lattitude])
-    # Рамка вокруг объекта:
-    envelope = toponym["boundedBy"]["Envelope"]
+    ll = None
+    if len(org_addresses)==1:
+        toponym2 = geocode(list_org_addresses[0])
+        if toponym2:
+            lon1, lat1 = org_addresses[0].split(',')
+            toponym_lattitude, toponym_longitude = float(toponym_lattitude), float(toponym_longitude)
+            lat1, lon1 = float(lat1), float(lon1)
+            a = max(toponym_longitude,lon1)
+            b = min(toponym_longitude,lon1)
+            a2 = max(toponym_lattitude, lat1)
+            b2 = min(toponym_lattitude, lat1)
+            ll = ",".join([str(min(toponym_longitude, lon1)+(a-b)/2), str(min(toponym_lattitude, lat1)+(a2-b2)/2)])
 
-    # левая, нижняя, правая и верхняя границы из координат углов:
-    l,b = envelope["lowerCorner"].split(" ")
-    r,t = envelope["upperCorner"].split(" ")
+            # Рамка вокруг объекта:
+            envelope1 = toponym1["boundedBy"]["Envelope"]
+            envelope2 = toponym2["boundedBy"]["Envelope"]
 
-    if len(org_addresses)>0:
+            # левая, нижняя, правая и верхняя границы из координат углов:
+            l_, b_ = envelope1["lowerCorner"].split(" ")
+            r_, t_ = envelope1["upperCorner"].split(" ")
+
+            _l, _b = envelope2["lowerCorner"].split(" ")
+            _r, _t = envelope2["upperCorner"].split(" ")
+            print(l_, b_, r_, t_)
+            print(_l, _b, _r, _t)
+            l, b = min(l_, _l),  min(b_, _b)
+            r, t = max(r_, _r), max(t_, _t)
+
+    else:
+        ll = ",".join([toponym_longitude, toponym_lattitude])
+
+        envelope1 = toponym1["boundedBy"]["Envelope"]
+
+        # левая, нижняя, правая и верхняя границы из координат углов:
+        l, b = envelope1["lowerCorner"].split(" ")
+        r, t = envelope1["upperCorner"].split(" ")
+
+    if len(org_addresses)>1:
         list_x_coordinates = []
         list_y_coordinates = []
 
