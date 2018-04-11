@@ -101,6 +101,7 @@ def interests(bot, update, user_data):
                     print('Информация прошла проверку: ', data)
                     _a.append('[Картинка.]({})\n{} ({})'.format(static_api_request, data, random_place))
                     datas.append(data)
+                    
 
         print(_places)
 
