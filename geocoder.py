@@ -211,12 +211,20 @@ def search(city, org, num = 1):
             try:
                 url = organization['url']
             except:
-                url = 'Сайт не обнаружен :('
-            _1 = '{}, {}. {}'.format(organization["name"], organization["address"], url)
+                url = 'Сайт не обнаружен.'
+            org_name, _org_address = organization["name"], organization["address"].split(', ')
+
+            org_address = []
+            for _ in _org_address:
+                if _ not in org_address:
+                    org_address.append(_)
+            org_address = ', '.join(org_address)
+
+            _1 = '{}, {}. {}'.format(org_name, org_address, url)
             point = json_response["features"][i]["geometry"]["coordinates"]
             org_point = "{0},{1}".format(point[0], point[1])
             organizations.append([_1, org_point])
         except:
-            print(organizations)
+            print('колличество организаций меньше. ', 'Искал: ', org,'.')
             return organizations
     return organizations
