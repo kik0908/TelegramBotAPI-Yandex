@@ -35,10 +35,17 @@ inline_keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Следующе�
 
 nazvanie_potom = {}
 
-def start(bot, update, user_data):
-    update.message.reply_text(
-        "Привет! :)\n"
-        "Я бот, который может тебе найти интересные места города на основе твоих интересов.\n")
+def start(bot, update):
+    update.message.reply_text("Привет! :)\n"
+                              "Я твой бот-помощник!\n")
+    update.message.reply_text("Я помогу тебе найти интересные места в городе на основе твоих интересов.\n"
+                              "Для этого напиши /guide\n")
+    update.message.reply_text("Если захочешь узнать про пробки, то набери\n"
+                              "/traffic_congestion {АДРЕС1}:{АДРЕС2}\n"
+                              "или\n"
+                              "/traffic_congestion {АДРЕС}\n")
+
+def guide(bot, update):
     update.message.reply_text("Какой город тебя интересует?")
     return 1
 
@@ -122,10 +129,37 @@ def change_places(bot, update, user_data):
                               reply_markup=inline_keyboard)
     return 2
 
+
+def traffic_congestion(bot, update, args):
+    if [True for j in args if ':' in j]:
+        address = (''.join(args)).split(':')
+        address1, address2 = address[0], address[1]
+        try:
+            lat, lon = get_coordinates(address2)
+            print(get_coordinates(address1), lat, lon)
+            ll, spn = get_ll_span(address1, [str(lat)+','+str(lon)], [address2])
+            print(ll, spn)
+        except:
+            update.message.reply_text("Извини, но я не смог найти этот адрес :(")
+    else:
+        address1 = args
+        ll, spn = get_ll_span(address1, [])
+    static_api_request = "http://static-maps.yandex.ru/1.x/?ll={}&l=map,trf&spn={}".format(ll,spn)
+    bot.sendPhoto(
+        update.message.chat.id,
+        static_api_request
+    )
+
 def main():
     updater = Updater(TOKEN)
 
     dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler('start', start))
+
+    conv_handler = ConversationHandler(
+        # Без изменений
+        entry_points=[CommandHandler('guide', guide)],
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start, pass_user_data=True)],
 
@@ -139,6 +173,10 @@ def main():
     )
 
     dp.add_handler(conv_handler)
+      
+    dp.add_handler(MessageHandler(Filters.text, back))
+    dp.add_handler(CommandHandler('traffic_congestion', traffic_congestion, pass_args=True))
+
     updater.start_polling()
 
     updater.idle()
