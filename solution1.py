@@ -4,7 +4,7 @@ from itertools import cycle
 from telegram.ext import Updater, MessageHandler, Filters, CallbackQueryHandler, CommandHandler, ConversationHandler
 from telegram import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 
-from geocoder import  search
+from geocoder import  search, get_ll_span, get_coordinates
 from settings import TOKEN
 
 
@@ -144,7 +144,7 @@ def traffic_congestion(bot, update, args):
             update.message.reply_text("Извини, но я не смог найти этот адрес :(")
     else:
         address1 = args
-        ll, spn = get_ll_span(address1, [])
+        ll, spn = get_ll_span(address1, [], [])
     static_api_request = "http://static-maps.yandex.ru/1.x/?ll={}&l=map,trf&spn={}".format(ll,spn)
     bot.sendPhoto(
         update.message.chat.id,
@@ -156,13 +156,9 @@ def main():
 
     dp = updater.dispatcher
 
-    dp.add_handler(CommandHandler('start', start))
 
     conv_handler = ConversationHandler(
-        # Без изменений
         entry_points=[CommandHandler('guide', guide)],
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start, pass_user_data=True)],
 
         states={
             1: [MessageHandler(Filters.text, town, pass_user_data=True)],
@@ -174,8 +170,8 @@ def main():
     )
 
     dp.add_handler(conv_handler)
-      
-    dp.add_handler(MessageHandler(Filters.text, back))
+
+    dp.add_handler(CommandHandler('start', start))
     dp.add_handler(CommandHandler('traffic_congestion', traffic_congestion, pass_args=True))
 
     updater.start_polling()
