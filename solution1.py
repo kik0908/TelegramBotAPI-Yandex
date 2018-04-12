@@ -1,10 +1,12 @@
 from random import choice, shuffle
 from itertools import cycle
 
+import pymorphy2
 from telegram.ext import Updater, MessageHandler, Filters, CallbackQueryHandler, CommandHandler, ConversationHandler
 from telegram import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 
 from geocoder import  search, get_ll_span, get_coordinates
+from weather_api import get_weather
 from settings import TOKEN
 
 
@@ -27,13 +29,22 @@ reply_keyboard = [['Развлечения', 'Питание'],
                   ['Культура', 'Магазины'],
                   ['Автосервис', 'Медтовары', 'Медицина'],
                   ['Животные','Прогулка'],
+                  ['Погода'],
                   ['Сменить город']]
 
 keyboard_yes_or_no = [['Да','Нет']]
 
 inline_keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Следующее место', callback_data=1)]])
 
+inline_keyboard_1 = InlineKeyboardMarkup([[InlineKeyboardButton('Следующий день', callback_data=2)]])
+
+inline_keyboard_2 = InlineKeyboardMarkup([[InlineKeyboardButton('Следующий день', callback_data=2)],
+                                          [InlineKeyboardButton('Предыдущий день', callback_data=3)]])
+
 nazvanie_potom = {}
+weather = {}
+
+morph = pymorphy2.MorphAnalyzer()
 
 def start(bot, update):
     update.message.reply_text("Привет! :)\n"
@@ -55,6 +66,12 @@ def town(bot, update, user_data):
     if not _ans:
         print('Ошибка при поиске города')
         update.message.reply_text("Прости, но я не смог найти такой город.\nКакой город тебя интересует?")
+        return 1
+    markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+    update.message.reply_text("Выберите сферу которая вас интересует", reply_markup=markup)
+    return 2
+
+def chouse_sph(bot, update):
     markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
     update.message.reply_text("Выберите сферу которая вас интересует", reply_markup=markup)
     return 2
@@ -69,6 +86,21 @@ def interests(bot, update, user_data):
     message = update.message.text.lower()
     if message == 'сменить город':
         return 1
+    elif message == 'погода':
+        _weather = get_weather(user_data['locality'])
+
+        gr = morph.parse('градус')[0]
+        degrise = str(_weather[0]['temp'])+' '+gr.make_agree_with_number(abs(int(_weather[0]['temp']))).word
+        degrise1 = str(_weather[0]['feels_like'])+' '+gr.make_agree_with_number(abs(int(_weather[0]['feels_like']))).word
+        date = _weather[0]['date']
+        osh = _weather[0]['condition']
+
+
+        mes = "Погода на {}.\nТемпература {}(ощущается как {}), {}".format(date, degrise, degrise1, osh)
+        _1 = update.message.reply_text(mes, reply_markup=inline_keyboard_1)
+        weather[_1.message_id] = [_weather, 0]
+
+        return 2
     elif message in places:
         update.message.reply_text("Начинаю поиск...")
 
@@ -128,6 +160,58 @@ def change_places(bot, update, user_data):
                               chat_id=query.message.chat_id,
                               message_id=query.message.message_id, parse_mode='markdown',
                               reply_markup=inline_keyboard)
+    elif query.data == '2':
+        weather[query.message.message_id][1] += 1
+        _key_board = inline_keyboard_2
+
+        if weather[query.message.message_id][1] >= len(weather[query.message.message_id][0]):
+            weather[query.message.message_id][1] = 0
+            _key_board = inline_keyboard_1
+
+        _weather = weather[query.message.message_id][0]
+        index = weather[query.message.message_id][1]
+        gr = morph.parse('градус')[0]
+        degrise = str(_weather[index]['temp']) + ' ' + gr.make_agree_with_number(abs(int(_weather[index]['temp']))).word
+        degrise1 = str(_weather[index]['feels_like']) + ' ' + gr.make_agree_with_number(
+            abs(int(_weather[index]['feels_like']))).word
+        if len(_weather[index]['date'].split('-')) != 1:
+            date = _weather[index]['date'].split('-')[-1] + '.' + _weather[index]['date'].split('-')[-2]
+        else:
+            date = _weather[index]['date']
+        osh = _weather[index]['condition']
+
+        mes = "Погода на {}.\nТемпература {}(ощущается как {}), {}".format(date, degrise, degrise1, osh)
+
+        bot.edit_message_text(text=mes,
+                              chat_id=query.message.chat_id,
+                              message_id=query.message.message_id, parse_mode='markdown',
+                              reply_markup=_key_board)
+    elif query.data == '3':
+        weather[query.message.message_id][1] -= 1
+        _key_board = inline_keyboard_2
+        if weather[query.message.message_id][1] <=0:
+            weather[query.message.message_id][1] = 0
+            _key_board = inline_keyboard_1
+
+        _weather = weather[query.message.message_id][0]
+        index = weather[query.message.message_id][1]
+        gr = morph.parse('градус')[0]
+        degrise = str(_weather[index]['temp']) + ' ' + gr.make_agree_with_number(abs(int(_weather[index]['temp']))).word
+        degrise1 = str(_weather[index]['feels_like']) + ' ' + gr.make_agree_with_number(
+            abs(int(_weather[index]['feels_like']))).word
+        if len(_weather[index]['date'].split('-')) != 1:
+            date = _weather[index]['date'].split('-')[-1] + '.' + _weather[index]['date'].split('-')[-2]
+        else:
+            date = _weather[index]['date']
+        osh = _weather[index]['condition']
+
+        mes = "Погода на {}.\nТемпература {}(ощущается как {}), {}".format(date, degrise, degrise1, osh)
+
+        bot.edit_message_text(text=mes,
+                              chat_id=query.message.chat_id,
+                              message_id=query.message.message_id, parse_mode='markdown',
+                              reply_markup=_key_board)
+
     return 2
 
 
