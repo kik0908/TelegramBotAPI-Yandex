@@ -48,7 +48,8 @@ def start(bot, update):
     update.message.reply_text("Привет! :)\n"
                               "Я твой бот-помощник!\n")
     update.message.reply_text("Я помогу тебе найти интересные места в городе на основе твоих интересов, а также узнать погоду.\n"
-                              "Для этого напиши /guide\n")
+                              "Для этого напиши /guide\n"
+                              "Для прекращения поиска набери  /stop\n")
     update.message.reply_text("Если захочешь узнать про пробки, то набери\n"
                               "/traffic_congestion {АДРЕС1}:{АДРЕС2}\n"
                               "или\n"
