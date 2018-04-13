@@ -168,6 +168,6 @@ def search(city, org, num=1):
             org_point = "{0},{1}".format(point[0], point[1])
             organizations.append([_1, org_point])
         except:
-            print('колличество организаций меньше. ', 'Искал: ', org, '.')
+            # print('колличество организаций меньше. ', 'Искал: ', org, '.')
             return organizations
     return organizations
