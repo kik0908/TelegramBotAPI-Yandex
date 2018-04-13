@@ -1,13 +1,11 @@
 import requests
 from settings import weather_api_key
 from geocoder import get_coordinates
-import pymorphy2
 
+headers = {"X-Yandex-API-Key": weather_api_key}
 
-headers = {"X-Yandex-API-Key": weather_api_key
-    }
+translation = requests.get('https://api.weather.yandex.ru/v1/translations?lang=ru_RU', headers=headers).json()
 
-translation = requests.get('https://api.weather.yandex.ru/v1/translations?lang=ru_RU',  headers=headers).json()
 
 def get_weather(place):
     api_server = "https://api.weather.yandex.ru/v1/forecast?"
@@ -17,21 +15,20 @@ def get_weather(place):
     forecast = []
 
     params = {
-        'lat':coord[1],
-        'lon':coord[0],
-        'lang':'ru_RU'
+        'lat': coord[1],
+        'lon': coord[0],
+        'lang': 'ru_RU'
     }
 
-    response = requests.get(api_server, headers=headers,params=params)
+    response = requests.get(api_server, headers=headers, params=params)
     json_response = response.json()
-    print(json_response)
     now_weather = json_response['fact']
     future_weather = json_response['forecasts']
 
     forecast.append({'temp': now_weather['temp'],
                      'feels_like': now_weather['feels_like'],
-                     'condition':translation[now_weather['condition']],
-                     'date':'сегодня'})
+                     'condition': translation[now_weather['condition']],
+                     'date': 'сегодня'})
 
     for i in range(1, 4):
         _a = {}
