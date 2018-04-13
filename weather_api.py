@@ -24,18 +24,17 @@ def get_weather(place):
     json_response = response.json()
     now_weather = json_response['fact']
     future_weather = json_response['forecasts']
-
     forecast.append({'temp': now_weather['temp'],
                      'feels_like': now_weather['feels_like'],
                      'condition': translation[now_weather['condition']],
                      'date': 'сегодня'})
 
     for i in range(1, 4):
-        _a = {}
-        _a['date'] = future_weather[i]['date']
-        _a['temp'] = future_weather[i]['parts']['day']['temp_avg']
-        _a['feels_like'] = future_weather[i]['parts']['day']['feels_like']
-        _a['condition'] = future_weather[i]['parts']['day']['condition']
-        forecast.append(_a.copy())
+        _weather = {}
+        _weather['date'] = future_weather[i]['date']
+        _weather['temp'] = future_weather[i]['parts']['day']['temp_avg']
+        _weather['feels_like'] = future_weather[i]['parts']['day']['feels_like']
+        _weather['condition'] = translation[future_weather[i]['parts']['day']['condition']]
+        forecast.append(_weather.copy())
 
     return forecast
