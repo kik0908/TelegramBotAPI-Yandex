@@ -222,9 +222,12 @@ def traffic_congestion(bot, update, args):
             except:
                 update.message.reply_text("Извини, но я не смог найти этот адрес :(")
 
-        elif len(args)==1:
+        elif len(args)>=1:
             address1 = args
-            ll, spn = get_ll_span(address1, [], [])
+            try:
+                ll, spn = get_ll_span(address1, [], [])
+            except:
+                update.message.reply_text("Извини, но я не смог найти этот адрес :(")
 
         static_api_request = "http://static-maps.yandex.ru/1.x/?ll={}&l=map,trf&spn={}".format(ll, spn)
         bot.sendPhoto(
